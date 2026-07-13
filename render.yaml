@@ -30,6 +30,8 @@ services:
         generateValue: true
       - key: FRONTEND_ORIGIN
         sync: false
+      - key: PYTHON_VERSION
+        value: "3.12.8"
 
   - type: web
     name: tma-frontend
