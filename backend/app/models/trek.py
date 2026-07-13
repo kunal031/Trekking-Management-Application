@@ -1,5 +1,6 @@
 import uuid
 from datetime import date
+from typing import Optional
 from decimal import Decimal
 
 from sqlalchemy import CheckConstraint, Date, Enum, ForeignKey, Integer, Numeric, String
@@ -24,7 +25,7 @@ class Trek(Base):
     duration_days: Mapped[int] = mapped_column(Integer, nullable=False)
     total_slots: Mapped[int] = mapped_column(Integer, nullable=False)
     available_slots: Mapped[int] = mapped_column(Integer, nullable=False)
-    assigned_staff_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("staff_profiles.id", ondelete="SET NULL"))
+    assigned_staff_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("staff_profiles.id", ondelete="SET NULL"))
     status: Mapped[TrekStatus] = mapped_column(Enum(TrekStatus), default=TrekStatus.PENDING, index=True, nullable=False)
     start_date: Mapped[date] = mapped_column(Date, nullable=False)
     end_date: Mapped[date] = mapped_column(Date, nullable=False)
