@@ -34,7 +34,6 @@ services:
   - type: web
     name: tma-frontend
     env: static
-    plan: free
     buildCommand: "cd frontend && npm install && VITE_API_BASE_URL=https://$BACKEND_URL/api/v1 npm run build"
     staticPublishPath: "./frontend/dist"
     routes:
