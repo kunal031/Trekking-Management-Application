@@ -1,7 +1,7 @@
 import { store } from "../store";
 import { logout } from "../store/authSlice";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://tma-backend-tr85.onrender.com/api/v1";
 
 export async function apiRequest(path, { token, ...options } = {}) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -17,7 +17,7 @@ export async function apiRequest(path, { token, ...options } = {}) {
     if (response.status === 401) {
       // Token is invalid, expired, or missing
       store.dispatch(logout());
-      window.location.href = "/auth";
+      // window.location.href = "/auth";
     }
 
     const body = await response.json().catch(() => ({}));
