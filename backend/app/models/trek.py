@@ -33,3 +33,9 @@ class Trek(Base):
 
     assigned_staff = relationship("StaffProfile", back_populates="assigned_treks")
     bookings = relationship("Booking", back_populates="trek", cascade="all, delete-orphan")
+
+    @property
+    def assigned_staff_name(self) -> str | None:
+        if self.assigned_staff and self.assigned_staff.user:
+            return f"{self.assigned_staff.user.first_name} {self.assigned_staff.user.last_name}"
+        return None

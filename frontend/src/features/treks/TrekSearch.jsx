@@ -105,6 +105,11 @@ export default function TrekSearch({ onSelect }) {
                 <span className="rounded-full border border-stone-200 bg-white px-2.5 py-0.5 text-xs font-semibold text-stone-600 shadow-sm">
                   {trek.duration_days} days
                 </span>
+                {trek.assigned_staff_name && (
+                  <span className="rounded-full border border-stone-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 shadow-sm">
+                    Guide: {trek.assigned_staff_name}
+                  </span>
+                )}
               </div>
               
               <div className="space-y-2 text-sm text-stone-500">

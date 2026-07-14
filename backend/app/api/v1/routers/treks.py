@@ -7,7 +7,7 @@ from sqlalchemy.orm import selectinload
 
 from app.api.deps import get_current_user, require_roles
 from app.db.session import get_session
-from app.models.enums import Difficulty, TrekStatus, UserRole
+from app.models.enums import Difficulty, StaffStatus, TrekStatus, UserRole
 from app.models.staff_profile import StaffProfile
 from app.models.trek import Trek
 from app.models.user import User
@@ -33,7 +33,7 @@ async def list_treks(
     if cached is not None:
         return cached
 
-    query = select(Trek).where(Trek.status == TrekStatus.OPEN).order_by(Trek.start_date)
+    query = select(Trek).options(selectinload(Trek.assigned_staff).selectinload(StaffProfile.user)).where(Trek.status == TrekStatus.OPEN).order_by(Trek.start_date)
     if difficulty:
         query = query.where(Trek.difficulty == difficulty)
     if location:
@@ -54,14 +54,14 @@ async def create_trek(payload: TrekCreate, session: AsyncSession = Depends(get_s
     trek = Trek(**payload.model_dump())
     session.add(trek)
     await session.commit()
-    await session.refresh(trek)
+    trek = await session.scalar(select(Trek).options(selectinload(Trek.assigned_staff).selectinload(StaffProfile.user)).where(Trek.id == trek.id))
     await clear_trek_cache()
     return trek
 
 
 @router.put("/{trek_id}", response_model=TrekRead, dependencies=[Depends(require_roles(UserRole.ADMIN))])
 async def update_trek(trek_id: UUID, payload: TrekUpdate, session: AsyncSession = Depends(get_session)) -> Trek:
-    trek = await session.get(Trek, trek_id)
+    trek = await session.scalar(select(Trek).options(selectinload(Trek.assigned_staff).selectinload(StaffProfile.user)).where(Trek.id == trek_id))
     if not trek:
         raise HTTPException(status_code=404, detail="Trek not found")
     for key, value in payload.model_dump(exclude_unset=True).items():
@@ -87,11 +87,12 @@ async def delete_trek(trek_id: UUID, session: AsyncSession = Depends(get_session
 
 @router.post("/{trek_id}/assign-staff", response_model=TrekRead, dependencies=[Depends(require_roles(UserRole.ADMIN))])
 async def assign_staff(trek_id: UUID, payload: AssignStaffRequest, session: AsyncSession = Depends(get_session)) -> Trek:
-    trek = await session.get(Trek, trek_id)
-    staff = await session.get(StaffProfile, payload.staff_profile_id)
+    trek = await session.scalar(select(Trek).options(selectinload(Trek.assigned_staff).selectinload(StaffProfile.user)).where(Trek.id == trek_id))
+    staff = await session.scalar(select(StaffProfile).options(selectinload(StaffProfile.user)).where(StaffProfile.id == payload.staff_profile_id))
     if not trek or not staff:
         raise HTTPException(status_code=404, detail="Trek or staff profile not found")
     trek.assigned_staff_id = staff.id
+    staff.status = StaffStatus.ON_TREK
     await session.commit()
     await session.refresh(trek)
     await clear_trek_cache()
@@ -106,7 +107,7 @@ async def assigned_to_me(
     profile = await session.scalar(select(StaffProfile).where(StaffProfile.user_id == current_user.id))
     if not profile:
         return []
-    return list((await session.scalars(select(Trek).where(Trek.assigned_staff_id == profile.id))).all())
+    return list((await session.scalars(select(Trek).options(selectinload(Trek.assigned_staff).selectinload(StaffProfile.user)).where(Trek.assigned_staff_id == profile.id))).all())
 
 
 @router.patch("/{trek_id}/slot-status", response_model=TrekRead)
@@ -117,7 +118,7 @@ async def update_slot_status(
     session: AsyncSession = Depends(get_session),
 ) -> Trek:
     profile = await session.scalar(select(StaffProfile).where(StaffProfile.user_id == current_user.id))
-    trek = await session.scalar(select(Trek).where(Trek.id == trek_id).with_for_update())
+    trek = await session.scalar(select(Trek).options(selectinload(Trek.assigned_staff).selectinload(StaffProfile.user)).where(Trek.id == trek_id).with_for_update())
     if not profile or not trek or trek.assigned_staff_id != profile.id:
         raise HTTPException(status_code=404, detail="Assigned trek not found")
     if payload.available_slots > trek.total_slots:

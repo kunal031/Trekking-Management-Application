@@ -49,6 +49,7 @@ class TrekUpdate(BaseModel):
 class TrekRead(TrekBase):
     id: uuid.UUID
     assigned_staff_id: uuid.UUID | None
+    assigned_staff_name: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
