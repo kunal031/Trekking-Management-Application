@@ -1,11 +1,36 @@
+import { useEffect } from "react";
 import { Link, Outlet } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 
-import { logout } from "../store/authSlice";
+import { setCredentials, logout, setLoaded } from "../store/authSlice";
+import { apiRequest } from "../lib/api";
 
 export default function App() {
   const dispatch = useDispatch();
-  const { user } = useSelector((state) => state.auth);
+  const { user, isLoaded } = useSelector((state) => state.auth);
+
+  useEffect(() => {
+    apiRequest("/auth/me")
+      .then((data) => {
+        dispatch(setCredentials({ access_token: "cookie-session", user: data }));
+      })
+      .catch(() => {
+        dispatch(setLoaded());
+      });
+  }, [dispatch]);
+
+  const handleLogout = async () => {
+    try {
+      await apiRequest("/auth/logout", { method: "POST" });
+    } catch (e) {
+      // ignore
+    }
+    dispatch(logout());
+  };
+
+  if (!isLoaded) {
+    return <div className="min-h-screen flex items-center justify-center bg-stone-50"><div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" /></div>;
+  }
 
   return (
     <div className="min-h-screen font-sans bg-stone-50 selection:bg-emerald-200">
@@ -33,7 +58,7 @@ export default function App() {
             {user ? (
               <button
                 className="rounded-full bg-stone-900 px-5 py-2 text-white shadow-md transition-all hover:bg-stone-800 hover:shadow-lg active:scale-95"
-                onClick={() => dispatch(logout())}
+                onClick={handleLogout}
               >
                 Sign out
               </button>

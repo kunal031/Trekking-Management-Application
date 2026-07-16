@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,7 +13,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
-async def register(payload: UserCreate, session: AsyncSession = Depends(get_session)) -> TokenResponse:
+async def register(payload: UserCreate, response: Response, session: AsyncSession = Depends(get_session)) -> TokenResponse:
     existing = await session.scalar(select(User).where(User.email == payload.email))
     if existing:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
@@ -29,11 +29,18 @@ async def register(payload: UserCreate, session: AsyncSession = Depends(get_sess
     await session.commit()
     await session.refresh(user)
     token = create_access_token(user.id, user.role)
+    response.set_cookie(
+        key="access_token",
+        value=token,
+        httponly=True,
+        secure=True,
+        samesite="lax"
+    )
     return TokenResponse(access_token=token, user=UserRead.model_validate(user))
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(payload: LoginRequest, session: AsyncSession = Depends(get_session)) -> TokenResponse:
+async def login(payload: LoginRequest, response: Response, session: AsyncSession = Depends(get_session)) -> TokenResponse:
     user = await session.scalar(select(User).where(User.email == payload.email))
     if not user or not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
@@ -41,7 +48,19 @@ async def login(payload: LoginRequest, session: AsyncSession = Depends(get_sessi
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is inactive or blacklisted")
 
     token = create_access_token(user.id, user.role)
+    response.set_cookie(
+        key="access_token",
+        value=token,
+        httponly=True,
+        secure=True,
+        samesite="lax"
+    )
     return TokenResponse(access_token=token, user=UserRead.model_validate(user))
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout(response: Response):
+    response.delete_cookie(key="access_token", httponly=True, secure=True, samesite="lax")
+    return None
 
 
 @router.get("/me", response_model=UserRead)

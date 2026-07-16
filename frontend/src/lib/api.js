@@ -6,9 +6,9 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://tma-backend-t
 export async function apiRequest(path, { token, ...options } = {}) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options.headers || {})
     }
   });
