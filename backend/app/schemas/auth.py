@@ -12,3 +12,7 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserRead
+
+class UpdatePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str

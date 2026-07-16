@@ -6,8 +6,12 @@ from app.api.deps import get_current_user
 from app.core.security import create_access_token, hash_password, verify_password
 from app.db.session import get_session
 from app.models.user import User
-from app.schemas.auth import LoginRequest, TokenResponse
+from app.models.staff_profile import StaffProfile
+from app.schemas.auth import LoginRequest, TokenResponse, UpdatePasswordRequest
 from app.schemas.user import UserCreate, UserRead, UserUpdate
+from app.schemas.staff import StaffUpdate
+from app.models.password_reset import PasswordResetRequest
+from app.schemas.password_reset import PasswordResetRequestCreate
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -81,3 +85,40 @@ async def update_me(payload: UserUpdate, current_user: User = Depends(get_curren
     await session.commit()
     await session.refresh(current_user)
     return current_user
+
+@router.patch("/update-password", status_code=status.HTTP_204_NO_CONTENT)
+async def update_password(payload: UpdatePasswordRequest, current_user: User = Depends(get_current_user), session: AsyncSession = Depends(get_session)):
+    if not verify_password(payload.current_password, current_user.password_hash):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect current password")
+    
+    current_user.password_hash = hash_password(payload.new_password)
+    session.add(current_user)
+    await session.commit()
+    return None
+
+@router.post("/forgot-password", status_code=status.HTTP_201_CREATED)
+async def forgot_password(payload: PasswordResetRequestCreate, session: AsyncSession = Depends(get_session)):
+    user = await session.scalar(select(User).where(User.email == payload.email))
+    if not user:
+        # We don't want to leak whether the email exists, but we can return success anyway.
+        return {"message": "If the email exists, a password reset request has been created."}
+    
+    request = PasswordResetRequest(user_id=user.id)
+    session.add(request)
+    await session.commit()
+    return {"message": "Password reset request created successfully."}
+
+@router.patch("/me/staff", status_code=status.HTTP_200_OK)
+async def update_my_staff_profile(payload: StaffUpdate, current_user: User = Depends(get_current_user), session: AsyncSession = Depends(get_session)):
+    if current_user.role != "STAFF":
+        raise HTTPException(status_code=403, detail="Not a staff member")
+        
+    staff = await session.scalar(select(StaffProfile).where(StaffProfile.user_id == current_user.id))
+    if not staff:
+        raise HTTPException(status_code=404, detail="Staff profile not found")
+        
+    for key, value in payload.model_dump(exclude_unset=True).items():
+        setattr(staff, key, value)
+        
+    await session.commit()
+    return {"message": "Staff profile updated successfully."}

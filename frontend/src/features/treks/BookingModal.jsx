@@ -4,7 +4,7 @@ import { useSelector } from "react-redux";
 import { apiRequest } from "../../lib/api";
 
 export default function BookingModal({ trek, onClose, onSuccess }) {
-  const { token } = useSelector((state) => state.auth);
+  const { token, user } = useSelector((state) => state.auth);
   const [slots, setSlots] = useState(1);
   const [status, setStatus] = useState("");
   const [processing, setProcessing] = useState(false);
@@ -13,7 +13,7 @@ export default function BookingModal({ trek, onClose, onSuccess }) {
   const [participants, setParticipants] = useState([]);
   
   const total = Number(trek.price_usd) * slots;
-  const requiredParticipants = previousSlots > 0 ? slots : Math.max(0, slots - 1);
+  const requiredParticipants = (previousSlots > 0 || user?.role === 'STAFF') ? slots : Math.max(0, slots - 1);
 
   useEffect(() => {
     apiRequest("/bookings/my-bookings", { token })

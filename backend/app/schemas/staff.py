@@ -22,3 +22,8 @@ class StaffRead(BaseModel):
     status: StaffStatus
 
     model_config = ConfigDict(from_attributes=True)
+
+class StaffUpdate(BaseModel):
+    skills: list[str] | None = None
+    status: StaffStatus | None = None
+    contact_details: str | None = None

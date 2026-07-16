@@ -33,7 +33,7 @@ async def create_booking(
     previous_slots = sum(b.slots_booked for b in previous_bookings)
 
     # Determine required participants for the new slots
-    required_participants = payload.slots_booked if previous_slots > 0 else payload.slots_booked - 1
+    required_participants = payload.slots_booked if (previous_slots > 0 or current_user.role == UserRole.STAFF) else payload.slots_booked - 1
 
     if len(payload.participants) != required_participants:
         raise HTTPException(

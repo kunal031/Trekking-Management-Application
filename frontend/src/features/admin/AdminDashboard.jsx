@@ -34,6 +34,7 @@ export default function AdminDashboard() {
     { id: "staff", label: "Staff" },
     { id: "treks", label: "Treks" },
     { id: "bookings", label: "Bookings" },
+    { id: "passwordResets", label: "Password Resets" },
   ];
 
   return (
@@ -61,6 +62,7 @@ export default function AdminDashboard() {
       {activeTab === "staff" && <StaffTab token={token} />}
       {activeTab === "treks" && <TreksTab token={token} />}
       {activeTab === "bookings" && <BookingsTab token={token} />}
+      {activeTab === "passwordResets" && <PasswordResetsTab token={token} />}
     </section>
   );
 }
@@ -171,6 +173,8 @@ function StaffTab({ token }) {
   const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
+  const [editingStaff, setEditingStaff] = useState(null);
+
   const fetchStaff = () => apiRequest("/admin/staff", { token })
     .then(setStaffList)
     .catch(err => setError(err.message));
@@ -199,6 +203,7 @@ function StaffTab({ token }) {
                 <th className="px-6 py-4 font-semibold">Email</th>
                 <th className="px-6 py-4 font-semibold">Skills</th>
                 <th className="px-6 py-4 font-semibold">Status</th>
+                <th className="px-6 py-4 font-semibold text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
@@ -208,6 +213,11 @@ function StaffTab({ token }) {
                   <td className="px-6 py-4 text-stone-600">{staff.user.email}</td>
                   <td className="px-6 py-4 text-stone-600">{staff.skills.join(", ") || "None"}</td>
                   <td className="px-6 py-4"><Badge color={staff.status === "AVAILABLE" ? "emerald" : "amber"}>{staff.status}</Badge></td>
+                  <td className="px-6 py-4 text-right">
+                    <button onClick={() => setEditingStaff(staff)} className="text-xs font-semibold px-3 py-1.5 rounded-lg border text-stone-700 border-stone-200 hover:bg-stone-100 transition-colors">
+                      Edit Skills
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -216,9 +226,61 @@ function StaffTab({ token }) {
       </div>
 
       {showModal && <RegisterStaffModal token={token} onClose={() => setShowModal(false)} onSuccess={fetchStaff} />}
+      {editingStaff && <EditSkillsModal token={token} staff={editingStaff} onClose={() => setEditingStaff(null)} onSuccess={fetchStaff} />}
     </div>
   );
 }
+
+function EditSkillsModal({ token, staff, onClose, onSuccess }) {
+  const [skillsStr, setSkillsStr] = useState(staff.skills.join(", "));
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    
+    const parsedSkills = skillsStr.split(",").map(s => s.trim()).filter(s => s.length > 0);
+
+    try {
+      await apiRequest(`/admin/staff/${staff.id}`, {
+        method: "PATCH",
+        token,
+        body: JSON.stringify({ skills: parsedSkills })
+      });
+      onSuccess();
+      onClose();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/40 p-4 backdrop-blur-sm animate-fade-in">
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl animate-scale-in">
+        <h2 className="text-xl font-bold mb-4">Edit Skills for {staff.user.first_name}</h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1">Skills</label>
+            <input className="w-full rounded-lg border border-stone-200 px-3 py-2 outline-none focus:border-emerald-500" type="text" placeholder="e.g., First Aid, Navigation" value={skillsStr} onChange={e => setSkillsStr(e.target.value)} />
+            <p className="text-xs text-stone-500 mt-1">Comma separated list of skills.</p>
+          </div>
+          {error && <p className="text-sm text-red-600 bg-red-50 border border-red-100 p-2 rounded">{error}</p>}
+          <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-stone-100">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-stone-600 hover:bg-stone-100 rounded-lg">Cancel</button>
+            <button type="submit" disabled={loading} className="px-6 py-2 text-sm font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 disabled:opacity-50 transition-all shadow-sm">
+              {loading ? "Saving..." : "Save Skills"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 
 function RegisterStaffModal({ token, onClose, onSuccess }) {
   const [form, setForm] = useState({ email: "", password: "", first_name: "", last_name: "", phone: "", skills: "" });
@@ -593,6 +655,85 @@ function ErrorMessage({ message }) {
         <h3 className="font-bold text-lg mb-2">Failed to load data</h3>
         <p className="text-sm">{message}</p>
         <p className="text-xs text-red-400 mt-3 font-medium tracking-wide uppercase">CORS or Network Error</p>
+      </div>
+    </div>
+  );
+}
+
+function PasswordResetsTab({ token }) {
+  const [requests, setRequests] = useState(null);
+  const [error, setError] = useState(null);
+
+  const fetchRequests = () => apiRequest("/admin/password-resets", { token })
+    .then(setRequests)
+    .catch(err => setError(err.message));
+
+  useEffect(() => {
+    fetchRequests();
+  }, [token]);
+
+  async function handleApprove(id) {
+    if (!confirm("Approve this password reset request?")) return;
+    try {
+      await apiRequest(`/admin/password-resets/${id}/approve`, { method: "POST", token });
+      fetchRequests();
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  async function handleReject(id) {
+    if (!confirm("Reject this password reset request?")) return;
+    try {
+      await apiRequest(`/admin/password-resets/${id}/reject`, { method: "POST", token });
+      fetchRequests();
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  if (error) return <ErrorMessage message={error} />;
+  if (!requests) return <LoadingSpinner />;
+
+  return (
+    <div className="glass rounded-2xl overflow-hidden animate-fade-in shadow-sm">
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead className="bg-stone-50 border-b border-stone-200 text-stone-600">
+            <tr>
+              <th className="px-6 py-4 font-semibold">Requested At</th>
+              <th className="px-6 py-4 font-semibold">User</th>
+              <th className="px-6 py-4 font-semibold">Email</th>
+              <th className="px-6 py-4 font-semibold">Status</th>
+              <th className="px-6 py-4 font-semibold text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-stone-100">
+            {requests.map((req) => (
+              <tr key={req.id} className="hover:bg-stone-50/50 transition-colors">
+                <td className="px-6 py-4 text-stone-600">{new Date(req.requested_at).toLocaleString()}</td>
+                <td className="px-6 py-4 font-medium text-stone-900">{req.user ? `${req.user.first_name} ${req.user.last_name}` : "Unknown"}</td>
+                <td className="px-6 py-4 text-stone-600">{req.user?.email}</td>
+                <td className="px-6 py-4"><Badge color={req.status === "PENDING" ? "amber" : req.status === "APPROVED" ? "emerald" : "red"}>{req.status}</Badge></td>
+                <td className="px-6 py-4 text-right space-x-2">
+                  {req.status === "PENDING" && (
+                    <>
+                      <button onClick={() => handleApprove(req.id)} className="text-xs font-semibold px-3 py-1.5 rounded-lg border text-emerald-700 border-emerald-200 hover:bg-emerald-50 transition-colors">
+                        Approve
+                      </button>
+                      <button onClick={() => handleReject(req.id)} className="text-xs font-semibold px-3 py-1.5 rounded-lg border text-red-700 border-red-200 hover:bg-red-50 transition-colors">
+                        Reject
+                      </button>
+                    </>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {requests.length === 0 && (
+          <div className="p-8 text-center text-stone-500">No password reset requests found.</div>
+        )}
       </div>
     </div>
   );

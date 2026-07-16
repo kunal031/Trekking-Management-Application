@@ -20,6 +20,14 @@ async def main():
         except Exception as e:
             print(f"Column might already exist or failed to add: {e}")
             
+        try:
+            print("Creating password_reset_requests table...")
+            from app.models.password_reset import PasswordResetRequest
+            await conn.run_sync(PasswordResetRequest.__table__.create, checkfirst=True)
+            print("Table created.")
+        except Exception as e:
+            print(f"Failed to create table: {e}")
+
     await engine.dispose()
     print("Migration finished!")
 

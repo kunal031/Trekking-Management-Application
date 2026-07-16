@@ -37,3 +37,8 @@ class PaymentStatus(str, Enum):
     PENDING = "PENDING"
     COMPLETED = "COMPLETED"
     REFUNDED = "REFUNDED"
+
+class PasswordResetStatus(str, Enum):
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
