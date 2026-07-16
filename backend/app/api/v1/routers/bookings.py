@@ -15,6 +15,7 @@ from app.models.trek import Trek
 from app.models.user import User
 from app.schemas.booking import BookingCreate, BookingRead
 from app.services.notifications import export_booking_history
+from app.services.redis_cache import clear_trek_cache
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])
 
@@ -45,6 +46,8 @@ async def create_booking(
     except IntegrityError:
         await session.rollback()
         raise HTTPException(status_code=409, detail="User already booked this trek")
+
+    await clear_trek_cache()
 
     return (
         await session.scalars(select(Booking).options(selectinload(Booking.trek).selectinload(Trek.assigned_staff).selectinload(StaffProfile.user)).where(Booking.id == booking.id))
@@ -87,6 +90,7 @@ async def cancel_booking(
     booking.payment_status = PaymentStatus.REFUNDED
     trek.available_slots += booking.slots_booked
     await session.commit()
+    await clear_trek_cache()
     return (
         await session.scalars(select(Booking).options(selectinload(Booking.trek).selectinload(Trek.assigned_staff).selectinload(StaffProfile.user)).where(Booking.id == booking.id))
     ).one()
