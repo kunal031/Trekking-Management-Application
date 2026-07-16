@@ -61,7 +61,7 @@ async def list_staff(session: AsyncSession = Depends(get_session)) -> list[Staff
 
 @router.get("/treks", response_model=list[TrekRead])
 async def list_treks(session: AsyncSession = Depends(get_session)) -> list[Trek]:
-    return list((await session.scalars(select(Trek).order_by(Trek.start_date.desc()))).all())
+    return list((await session.scalars(select(Trek).options(selectinload(Trek.assigned_staff).selectinload(StaffProfile.user)).order_by(Trek.start_date.desc()))).all())
 
 
 @router.post("/staff", response_model=StaffRead, status_code=201)
@@ -98,4 +98,4 @@ async def blacklist_user(user_id: UUID, payload: UserBlacklistUpdate, session: A
 
 @router.get("/bookings", response_model=list[BookingRead])
 async def list_bookings(session: AsyncSession = Depends(get_session)) -> list[Booking]:
-    return list((await session.scalars(select(Booking).options(selectinload(Booking.trek)).order_by(Booking.booking_date.desc()))).all())
+    return list((await session.scalars(select(Booking).options(selectinload(Booking.trek).selectinload(Trek.assigned_staff).selectinload(StaffProfile.user)).order_by(Booking.booking_date.desc()))).all())

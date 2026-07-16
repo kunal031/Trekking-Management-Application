@@ -145,4 +145,4 @@ async def get_trek_participants(
         if not profile or trek.assigned_staff_id != profile.id:
             raise HTTPException(status_code=403, detail="Not assigned to this trek")
             
-    return list((await session.scalars(select(Booking).options(selectinload(Booking.trek)).where(Booking.trek_id == trek_id).order_by(Booking.booking_date.desc()))).all())
+    return list((await session.scalars(select(Booking).options(selectinload(Booking.trek).selectinload(Trek.assigned_staff).selectinload(StaffProfile.user)).where(Booking.trek_id == trek_id).order_by(Booking.booking_date.desc()))).all())

@@ -10,6 +10,7 @@ from app.api.deps import get_current_user, require_roles
 from app.db.session import get_session
 from app.models.booking import Booking
 from app.models.enums import BookingStatus, PaymentStatus, TrekStatus, UserRole
+from app.models.staff_profile import StaffProfile
 from app.models.trek import Trek
 from app.models.user import User
 from app.schemas.booking import BookingCreate, BookingRead
@@ -46,7 +47,7 @@ async def create_booking(
         raise HTTPException(status_code=409, detail="User already booked this trek")
 
     return (
-        await session.scalars(select(Booking).options(selectinload(Booking.trek)).where(Booking.id == booking.id))
+        await session.scalars(select(Booking).options(selectinload(Booking.trek).selectinload(Trek.assigned_staff).selectinload(StaffProfile.user)).where(Booking.id == booking.id))
     ).one()
 
 
@@ -56,7 +57,7 @@ async def my_bookings(current_user: User = Depends(get_current_user), session: A
         (
             await session.scalars(
                 select(Booking)
-                .options(selectinload(Booking.trek))
+                .options(selectinload(Booking.trek).selectinload(Trek.assigned_staff).selectinload(StaffProfile.user))
                 .where(Booking.user_id == current_user.id)
                 .order_by(Booking.booking_date.desc())
             )
@@ -87,7 +88,7 @@ async def cancel_booking(
     trek.available_slots += booking.slots_booked
     await session.commit()
     return (
-        await session.scalars(select(Booking).options(selectinload(Booking.trek)).where(Booking.id == booking.id))
+        await session.scalars(select(Booking).options(selectinload(Booking.trek).selectinload(Trek.assigned_staff).selectinload(StaffProfile.user)).where(Booking.id == booking.id))
     ).one()
 
 

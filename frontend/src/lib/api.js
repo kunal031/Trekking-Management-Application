@@ -1,7 +1,7 @@
 import { store } from "../store";
 import { logout } from "../store/authSlice";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://tma-backend-tr85.onrender.com/api/v1";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://tma-backend-production-f263.up.railway.app/api/v1";
 
 export async function apiRequest(path, { token, ...options } = {}) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
