@@ -520,7 +520,8 @@ function BookingsTab({ token }) {
             <tr>
               <th className="px-6 py-4 font-semibold">Date</th>
               <th className="px-6 py-4 font-semibold">Trek</th>
-              <th className="px-6 py-4 font-semibold">Slots</th>
+              <th className="px-6 py-4 font-semibold">User</th>
+              <th className="px-6 py-4 font-semibold">Slots (Participants)</th>
               <th className="px-6 py-4 font-semibold">Status</th>
               <th className="px-6 py-4 font-semibold">Payment</th>
             </tr>
@@ -530,7 +531,17 @@ function BookingsTab({ token }) {
               <tr key={booking.id} className="hover:bg-stone-50/50 transition-colors">
                 <td className="px-6 py-4 text-stone-600">{new Date(booking.booking_date).toLocaleDateString()}</td>
                 <td className="px-6 py-4 font-medium text-stone-900">{booking.trek.name}</td>
-                <td className="px-6 py-4 text-stone-600">{booking.slots_booked}</td>
+                <td className="px-6 py-4 text-stone-600">
+                  {booking.user ? `${booking.user.first_name} ${booking.user.last_name}` : "Unknown"}
+                </td>
+                <td className="px-6 py-4 text-stone-600">
+                  {booking.slots_booked} 
+                  {booking.participants?.length > 0 && (
+                    <span className="ml-2 text-xs text-stone-400">
+                      (+{booking.participants.length} others)
+                    </span>
+                  )}
+                </td>
                 <td className="px-6 py-4"><Badge color={booking.status === "BOOKED" ? "emerald" : "red"}>{booking.status}</Badge></td>
                 <td className="px-6 py-4"><Badge color={booking.payment_status === "COMPLETED" ? "blue" : "amber"}>{booking.payment_status}</Badge></td>
               </tr>

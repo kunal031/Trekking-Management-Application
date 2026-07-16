@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.enums import BookingStatus, PaymentStatus
 from app.schemas.trek import TrekRead
+from app.schemas.user import UserRead
 
 
 class ParticipantBase(BaseModel):
@@ -30,6 +31,7 @@ class BookingRead(BaseModel):
     slots_booked: int
     participants: list[ParticipantBase] = []
     trek: TrekRead | None = None
+    user: UserRead | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

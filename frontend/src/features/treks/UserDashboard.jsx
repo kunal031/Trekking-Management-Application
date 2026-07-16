@@ -8,6 +8,7 @@ import ProfileTab from "../../components/ProfileTab";
 export default function UserDashboard() {
   const [activeTab, setActiveTab] = useState("treks");
   const [selectedTrek, setSelectedTrek] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
   const token = useSelector((state) => state.auth.token);
 
   return (
@@ -52,10 +53,19 @@ export default function UserDashboard() {
           </div>
 
           <div className="mx-auto max-w-5xl">
-            <TrekSearch onSelect={setSelectedTrek} />
+            <TrekSearch onSelect={setSelectedTrek} refreshKey={refreshKey} />
           </div>
 
-          {selectedTrek && <BookingModal trek={selectedTrek} onClose={() => setSelectedTrek(null)} />}
+          {selectedTrek && (
+            <BookingModal 
+              trek={selectedTrek} 
+              onClose={() => setSelectedTrek(null)} 
+              onSuccess={() => {
+                setRefreshKey(prev => prev + 1);
+                setSelectedTrek(null);
+              }}
+            />
+          )}
         </>
       )}
 

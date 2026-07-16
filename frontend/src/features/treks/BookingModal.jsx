@@ -3,7 +3,7 @@ import { useSelector } from "react-redux";
 
 import { apiRequest } from "../../lib/api";
 
-export default function BookingModal({ trek, onClose }) {
+export default function BookingModal({ trek, onClose, onSuccess }) {
   const { token } = useSelector((state) => state.auth);
   const [slots, setSlots] = useState(1);
   const [status, setStatus] = useState("");
@@ -56,7 +56,10 @@ export default function BookingModal({ trek, onClose }) {
         })
       });
       setStatus("success");
-      setTimeout(onClose, 1200);
+      setTimeout(() => {
+        if (onSuccess) onSuccess();
+        else onClose();
+      }, 1200);
     } catch (err) {
       setStatus(err.message);
       setProcessing(false);

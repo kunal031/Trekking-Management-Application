@@ -8,7 +8,7 @@ const difficultyColors = {
   HARD: "bg-rose-100 text-rose-800 border-rose-200",
 };
 
-export default function TrekSearch({ onSelect }) {
+export default function TrekSearch({ onSelect, refreshKey = 0 }) {
   const [filters, setFilters] = useState({ difficulty: "", location: "", duration_days: "" });
   const [treks, setTreks] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -31,7 +31,7 @@ export default function TrekSearch({ onSelect }) {
       }
     }, 350);
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query, refreshKey]);
 
   return (
     <section>

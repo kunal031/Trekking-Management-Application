@@ -62,7 +62,7 @@ async def create_booking(
     await clear_trek_cache()
 
     return (
-        await session.scalars(select(Booking).options(selectinload(Booking.trek).selectinload(Trek.assigned_staff).selectinload(StaffProfile.user)).where(Booking.id == booking.id))
+        await session.scalars(select(Booking).options(selectinload(Booking.user), selectinload(Booking.trek).selectinload(Trek.assigned_staff).selectinload(StaffProfile.user)).where(Booking.id == booking.id))
     ).one()
 
 
@@ -72,7 +72,7 @@ async def my_bookings(current_user: User = Depends(get_current_user), session: A
         (
             await session.scalars(
                 select(Booking)
-                .options(selectinload(Booking.trek).selectinload(Trek.assigned_staff).selectinload(StaffProfile.user))
+                .options(selectinload(Booking.user), selectinload(Booking.trek).selectinload(Trek.assigned_staff).selectinload(StaffProfile.user))
                 .where(Booking.user_id == current_user.id)
                 .order_by(Booking.booking_date.desc())
             )
@@ -104,7 +104,7 @@ async def cancel_booking(
     await session.commit()
     await clear_trek_cache()
     return (
-        await session.scalars(select(Booking).options(selectinload(Booking.trek).selectinload(Trek.assigned_staff).selectinload(StaffProfile.user)).where(Booking.id == booking.id))
+        await session.scalars(select(Booking).options(selectinload(Booking.user), selectinload(Booking.trek).selectinload(Trek.assigned_staff).selectinload(StaffProfile.user)).where(Booking.id == booking.id))
     ).one()
 
 
