@@ -10,6 +10,10 @@ export default function App() {
   const { user, isLoaded } = useSelector((state) => state.auth);
 
   useEffect(() => {
+    // Clean up legacy local storage tokens to prevent XSS vulnerabilities
+    localStorage.removeItem("tma_token");
+    localStorage.removeItem("tma_user");
+
     apiRequest("/auth/me")
       .then((data) => {
         dispatch(setCredentials({ access_token: "cookie-session", user: data }));
