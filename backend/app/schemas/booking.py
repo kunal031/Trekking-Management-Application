@@ -8,9 +8,16 @@ from app.models.enums import BookingStatus, PaymentStatus
 from app.schemas.trek import TrekRead
 
 
+class ParticipantBase(BaseModel):
+    name: str
+    email: str
+    age: int = Field(gt=0)
+
+
 class BookingCreate(BaseModel):
     trek_id: uuid.UUID
     slots_booked: int = Field(gt=0)
+    participants: list[ParticipantBase] = []
 
 
 class BookingRead(BaseModel):
@@ -21,6 +28,7 @@ class BookingRead(BaseModel):
     status: BookingStatus
     payment_status: PaymentStatus
     slots_booked: int
+    participants: list[ParticipantBase] = []
     trek: TrekRead | None = None
 
     model_config = ConfigDict(from_attributes=True)

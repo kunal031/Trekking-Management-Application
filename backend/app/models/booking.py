@@ -1,8 +1,8 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, Enum, ForeignKey, Integer, UniqueConstraint, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import CheckConstraint, DateTime, Enum, ForeignKey, Integer, func
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -12,7 +12,6 @@ from app.models.enums import BookingStatus, PaymentStatus
 class Booking(Base):
     __tablename__ = "bookings"
     __table_args__ = (
-        UniqueConstraint("user_id", "trek_id", name="uq_booking_user_trek"),
         CheckConstraint("slots_booked > 0", name="ck_booking_slots_positive"),
     )
 
@@ -23,6 +22,7 @@ class Booking(Base):
     status: Mapped[BookingStatus] = mapped_column(Enum(BookingStatus), default=BookingStatus.BOOKED, nullable=False)
     payment_status: Mapped[PaymentStatus] = mapped_column(Enum(PaymentStatus), default=PaymentStatus.PENDING, nullable=False)
     slots_booked: Mapped[int] = mapped_column(Integer, nullable=False)
+    participants: Mapped[list[dict]] = mapped_column(JSONB, default=list, server_default='[]')
 
     user = relationship("User", back_populates="bookings")
     trek = relationship("Trek", back_populates="bookings")

@@ -26,6 +26,21 @@ async def create_booking(
     current_user: User = Depends(require_roles(UserRole.USER)),
     session: AsyncSession = Depends(get_session),
 ) -> Booking:
+    # Calculate how many slots the user has previously booked for this trek
+    previous_bookings = await session.scalars(
+        select(Booking).where(Booking.user_id == current_user.id, Booking.trek_id == payload.trek_id)
+    )
+    previous_slots = sum(b.slots_booked for b in previous_bookings)
+
+    # Determine required participants for the new slots
+    required_participants = payload.slots_booked if previous_slots > 0 else payload.slots_booked - 1
+
+    if len(payload.participants) != required_participants:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"You must provide exactly {required_participants} participant details for these slots."
+        )
+
     locked_trek = await session.scalar(select(Trek).where(Trek.id == payload.trek_id).with_for_update())
     if not locked_trek or locked_trek.status != TrekStatus.OPEN:
         raise HTTPException(status_code=404, detail="Open trek not found")
@@ -39,13 +54,10 @@ async def create_booking(
         slots_booked=payload.slots_booked,
         status=BookingStatus.BOOKED,
         payment_status=PaymentStatus.COMPLETED,
+        participants=[p.model_dump() for p in payload.participants],
     )
     session.add(booking)
-    try:
-        await session.commit()
-    except IntegrityError:
-        await session.rollback()
-        raise HTTPException(status_code=409, detail="User already booked this trek")
+    await session.commit()
 
     await clear_trek_cache()
 
