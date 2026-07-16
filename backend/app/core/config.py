@@ -6,7 +6,10 @@ class Settings(BaseSettings):
     jwt_secret_key: str = "change-me-in-production"
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
-    frontend_origin: str = "http://localhost:5173"
+    frontend_origins: list[str] = [
+        "http://localhost:5173",
+        "https://trekking-management-application.vercel.app"
+    ]
 
     @field_validator("database_url", mode="after")
     @classmethod

@@ -34,7 +34,7 @@ async def register(payload: UserCreate, response: Response, session: AsyncSessio
         value=token,
         httponly=True,
         secure=True,
-        samesite="lax"
+        samesite="none"
     )
     return TokenResponse(access_token=token, user=UserRead.model_validate(user))
 
@@ -53,13 +53,13 @@ async def login(payload: LoginRequest, response: Response, session: AsyncSession
         value=token,
         httponly=True,
         secure=True,
-        samesite="lax"
+        samesite="none"
     )
     return TokenResponse(access_token=token, user=UserRead.model_validate(user))
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(response: Response):
-    response.delete_cookie(key="access_token", httponly=True, secure=True, samesite="lax")
+    response.delete_cookie(key="access_token", httponly=True, secure=True, samesite="none")
     return None
 
 

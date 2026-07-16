@@ -67,11 +67,15 @@ export default function AdminDashboard() {
 
 function OverviewTab({ token }) {
   const [stats, setStats] = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    apiRequest("/admin/dashboard/stats", { token }).then(setStats);
+    apiRequest("/admin/dashboard/stats", { token })
+      .then(setStats)
+      .catch(err => setError(err.message));
   }, [token]);
 
+  if (error) return <ErrorMessage message={error} />;
   if (!stats) return <LoadingSpinner />;
 
   const statusLabels = Object.keys(stats.bookings_by_status);
@@ -108,9 +112,12 @@ function OverviewTab({ token }) {
 
 function UsersTab({ token }) {
   const [users, setUsers] = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    apiRequest("/admin/users", { token }).then(setUsers);
+    apiRequest("/admin/users", { token })
+      .then(setUsers)
+      .catch(err => setError(err.message));
   }, [token]);
 
   async function toggleBlacklist(user) {
@@ -122,6 +129,7 @@ function UsersTab({ token }) {
     setUsers((current) => current.map((u) => (u.id === updated.id ? updated : u)));
   }
 
+  if (error) return <ErrorMessage message={error} />;
   if (!users) return <LoadingSpinner />;
 
   return (
@@ -160,14 +168,18 @@ function UsersTab({ token }) {
 
 function StaffTab({ token }) {
   const [staffList, setStaffList] = useState(null);
+  const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
-  const fetchStaff = () => apiRequest("/admin/staff", { token }).then(setStaffList);
+  const fetchStaff = () => apiRequest("/admin/staff", { token })
+    .then(setStaffList)
+    .catch(err => setError(err.message));
   
   useEffect(() => {
     fetchStaff();
   }, [token]);
 
+  if (error) return <ErrorMessage message={error} />;
   if (!staffList) return <LoadingSpinner />;
 
   return (
@@ -268,12 +280,17 @@ function RegisterStaffModal({ token, onClose, onSuccess }) {
 
 function TreksTab({ token }) {
   const [treks, setTreks] = useState(null);
+  const [error, setError] = useState(null);
   const [staffList, setStaffList] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editingTrek, setEditingTrek] = useState(null);
 
-  const fetchTreks = () => apiRequest("/admin/treks", { token }).then(setTreks);
-  const fetchStaff = () => apiRequest("/admin/staff", { token }).then(setStaffList);
+  const fetchTreks = () => apiRequest("/admin/treks", { token })
+    .then(setTreks)
+    .catch(err => setError(err.message));
+  const fetchStaff = () => apiRequest("/admin/staff", { token })
+    .then(setStaffList)
+    .catch(() => {}); // Ignore staff fetch error if treks succeed
 
   useEffect(() => {
     fetchTreks();
@@ -301,6 +318,7 @@ function TreksTab({ token }) {
     }
   }
 
+  if (error) return <ErrorMessage message={error} />;
   if (!treks) return <LoadingSpinner />;
 
   return (
@@ -483,11 +501,15 @@ function TrekModal({ token, trek, onClose, onSuccess }) {
 
 function BookingsTab({ token }) {
   const [bookings, setBookings] = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    apiRequest("/admin/bookings", { token }).then(setBookings);
+    apiRequest("/admin/bookings", { token })
+      .then(setBookings)
+      .catch(err => setError(err.message));
   }, [token]);
 
+  if (error) return <ErrorMessage message={error} />;
   if (!bookings) return <LoadingSpinner />;
 
   return (
@@ -549,6 +571,18 @@ function LoadingSpinner() {
   return (
     <div className="flex h-64 items-center justify-center animate-fade-in">
       <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" />
+    </div>
+  );
+}
+
+function ErrorMessage({ message }) {
+  return (
+    <div className="flex h-64 items-center justify-center animate-fade-in">
+      <div className="p-6 text-center text-red-600 bg-red-50 rounded-2xl border border-red-100 max-w-md shadow-sm">
+        <h3 className="font-bold text-lg mb-2">Failed to load data</h3>
+        <p className="text-sm">{message}</p>
+        <p className="text-xs text-red-400 mt-3 font-medium tracking-wide uppercase">CORS or Network Error</p>
+      </div>
     </div>
   );
 }
