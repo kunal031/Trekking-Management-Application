@@ -11,7 +11,9 @@ from app.schemas.auth import LoginRequest, TokenResponse, UpdatePasswordRequest
 from app.schemas.user import UserCreate, UserRead, UserUpdate
 from app.schemas.staff import StaffUpdate
 from app.models.password_reset import PasswordResetRequest
-from app.schemas.password_reset import PasswordResetRequestCreate
+from app.schemas.password_reset import PasswordResetRequestCreate, ResetPasswordRequest
+from app.models.enums import PasswordResetStatus
+from datetime import datetime, timezone, timedelta
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -100,13 +102,42 @@ async def update_password(payload: UpdatePasswordRequest, current_user: User = D
 async def forgot_password(payload: PasswordResetRequestCreate, session: AsyncSession = Depends(get_session)):
     user = await session.scalar(select(User).where(User.email == payload.email))
     if not user:
-        # We don't want to leak whether the email exists, but we can return success anyway.
-        return {"message": "If the email exists, a password reset request has been created."}
+        return {"message": "If the email exists, a password reset link has been sent."}
     
     request = PasswordResetRequest(user_id=user.id)
     session.add(request)
     await session.commit()
-    return {"message": "Password reset request created successfully."}
+    
+    reset_link = f"http://localhost:5173/reset-password?token={request.id}"
+    print(f"\n[SIMULATED EMAIL] To: {user.email}")
+    print(f"[SIMULATED EMAIL] Subject: Password Reset Request")
+    print(f"[SIMULATED EMAIL] Body: Click the following link to reset your password: {reset_link}\n")
+    
+    return {"message": "If the email exists, a password reset link has been sent."}
+
+@router.post("/reset-password", status_code=status.HTTP_200_OK)
+async def reset_password(payload: ResetPasswordRequest, session: AsyncSession = Depends(get_session)):
+    req = await session.scalar(select(PasswordResetRequest).where(PasswordResetRequest.id == payload.token))
+    if not req or req.status != PasswordResetStatus.PENDING:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token.")
+        
+    if datetime.now(timezone.utc) - req.requested_at > timedelta(hours=1):
+        req.status = PasswordResetStatus.REJECTED
+        session.add(req)
+        await session.commit()
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token.")
+        
+    user = await session.scalar(select(User).where(User.id == req.user_id))
+    if not user:
+        raise HTTPException(status_code=400, detail="User not found.")
+        
+    user.password_hash = hash_password(payload.new_password)
+    req.status = PasswordResetStatus.APPROVED
+    
+    session.add(user)
+    session.add(req)
+    await session.commit()
+    return {"message": "Password has been successfully reset."}
 
 @router.patch("/me/staff", status_code=status.HTTP_200_OK)
 async def update_my_staff_profile(payload: StaffUpdate, current_user: User = Depends(get_current_user), session: AsyncSession = Depends(get_session)):

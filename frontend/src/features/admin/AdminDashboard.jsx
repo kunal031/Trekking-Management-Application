@@ -34,7 +34,6 @@ export default function AdminDashboard() {
     { id: "staff", label: "Staff" },
     { id: "treks", label: "Treks" },
     { id: "bookings", label: "Bookings" },
-    { id: "passwordResets", label: "Password Resets" },
   ];
 
   return (
@@ -62,7 +61,6 @@ export default function AdminDashboard() {
       {activeTab === "staff" && <StaffTab token={token} />}
       {activeTab === "treks" && <TreksTab token={token} />}
       {activeTab === "bookings" && <BookingsTab token={token} />}
-      {activeTab === "passwordResets" && <PasswordResetsTab token={token} />}
     </section>
   );
 }
@@ -660,81 +658,4 @@ function ErrorMessage({ message }) {
   );
 }
 
-function PasswordResetsTab({ token }) {
-  const [requests, setRequests] = useState(null);
-  const [error, setError] = useState(null);
 
-  const fetchRequests = () => apiRequest("/admin/password-resets", { token })
-    .then(setRequests)
-    .catch(err => setError(err.message));
-
-  useEffect(() => {
-    fetchRequests();
-  }, [token]);
-
-  async function handleApprove(id) {
-    if (!confirm("Approve this password reset request?")) return;
-    try {
-      await apiRequest(`/admin/password-resets/${id}/approve`, { method: "POST", token });
-      fetchRequests();
-    } catch (err) {
-      alert(err.message);
-    }
-  }
-
-  async function handleReject(id) {
-    if (!confirm("Reject this password reset request?")) return;
-    try {
-      await apiRequest(`/admin/password-resets/${id}/reject`, { method: "POST", token });
-      fetchRequests();
-    } catch (err) {
-      alert(err.message);
-    }
-  }
-
-  if (error) return <ErrorMessage message={error} />;
-  if (!requests) return <LoadingSpinner />;
-
-  return (
-    <div className="glass rounded-2xl overflow-hidden animate-fade-in shadow-sm">
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-stone-50 border-b border-stone-200 text-stone-600">
-            <tr>
-              <th className="px-6 py-4 font-semibold">Requested At</th>
-              <th className="px-6 py-4 font-semibold">User</th>
-              <th className="px-6 py-4 font-semibold">Email</th>
-              <th className="px-6 py-4 font-semibold">Status</th>
-              <th className="px-6 py-4 font-semibold text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-stone-100">
-            {requests.map((req) => (
-              <tr key={req.id} className="hover:bg-stone-50/50 transition-colors">
-                <td className="px-6 py-4 text-stone-600">{new Date(req.requested_at).toLocaleString()}</td>
-                <td className="px-6 py-4 font-medium text-stone-900">{req.user ? `${req.user.first_name} ${req.user.last_name}` : "Unknown"}</td>
-                <td className="px-6 py-4 text-stone-600">{req.user?.email}</td>
-                <td className="px-6 py-4"><Badge color={req.status === "PENDING" ? "amber" : req.status === "APPROVED" ? "emerald" : "red"}>{req.status}</Badge></td>
-                <td className="px-6 py-4 text-right space-x-2">
-                  {req.status === "PENDING" && (
-                    <>
-                      <button onClick={() => handleApprove(req.id)} className="text-xs font-semibold px-3 py-1.5 rounded-lg border text-emerald-700 border-emerald-200 hover:bg-emerald-50 transition-colors">
-                        Approve
-                      </button>
-                      <button onClick={() => handleReject(req.id)} className="text-xs font-semibold px-3 py-1.5 rounded-lg border text-red-700 border-red-200 hover:bg-red-50 transition-colors">
-                        Reject
-                      </button>
-                    </>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {requests.length === 0 && (
-          <div className="p-8 text-center text-stone-500">No password reset requests found.</div>
-        )}
-      </div>
-    </div>
-  );
-}

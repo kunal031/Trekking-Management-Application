@@ -7,6 +7,7 @@ import "./index.css";
 import App from "./routes/App";
 import AdminDashboard from "./features/admin/AdminDashboard";
 import Auth from "./features/auth/Auth";
+import ResetPassword from "./features/auth/ResetPassword";
 import StaffPortal from "./features/staff/StaffPortal";
 import UserDashboard from "./features/treks/UserDashboard";
 import ProtectedRoute from "./routes/ProtectedRoute";
@@ -20,6 +21,7 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <RootGuard /> },
       { path: "auth", element: <Auth /> },
+      { path: "reset-password", element: <ResetPassword /> },
       {
         path: "admin",
         element: (

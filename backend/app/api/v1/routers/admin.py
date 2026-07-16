@@ -15,10 +15,7 @@ from app.models.enums import BookingStatus, PaymentStatus, TrekStatus, UserRole
 from app.models.staff_profile import StaffProfile
 from app.models.trek import Trek
 from app.models.user import User
-from app.models.password_reset import PasswordResetRequest
-from app.models.enums import PasswordResetStatus
 from app.schemas.booking import BookingRead
-from app.schemas.password_reset import PasswordResetRequestRead
 from app.schemas.dashboard import DashboardStats
 from app.schemas.staff import StaffCreate, StaffRead, StaffUpdate
 from app.schemas.trek import TrekRead
@@ -116,45 +113,3 @@ async def blacklist_user(user_id: UUID, payload: UserBlacklistUpdate, session: A
 async def list_bookings(session: AsyncSession = Depends(get_session)) -> list[Booking]:
     return list((await session.scalars(select(Booking).options(selectinload(Booking.user), selectinload(Booking.trek).selectinload(Trek.assigned_staff).selectinload(StaffProfile.user)).order_by(Booking.booking_date.desc()))).all())
 
-@router.get("/password-resets", response_model=list[PasswordResetRequestRead])
-async def list_password_resets(session: AsyncSession = Depends(get_session)) -> list[PasswordResetRequest]:
-    return list((await session.scalars(select(PasswordResetRequest).options(selectinload(PasswordResetRequest.user)).order_by(PasswordResetRequest.requested_at.desc()))).all())
-
-
-@router.post("/password-resets/{request_id}/approve", status_code=200)
-async def approve_password_reset(request_id: UUID, session: AsyncSession = Depends(get_session)):
-    req = await session.scalar(select(PasswordResetRequest).options(selectinload(PasswordResetRequest.user)).where(PasswordResetRequest.id == request_id))
-    if not req:
-        raise HTTPException(status_code=404, detail="Request not found")
-    if req.status != PasswordResetStatus.PENDING:
-        raise HTTPException(status_code=400, detail="Request is already processed")
-        
-    req.status = PasswordResetStatus.APPROVED
-    
-    # Generate temporary password
-    temp_password = secrets.token_urlsafe(12)
-    req.user.password_hash = hash_password(temp_password)
-    
-    await session.commit()
-    
-    # Send "email"
-    await notifications.send_message(
-        req.user.email,
-        "Password Reset Approved",
-        f"Your password has been reset. Your temporary password is: {temp_password}\nPlease login and update your password immediately."
-    )
-    
-    return {"message": "Approved and password reset sent to user."}
-
-
-@router.post("/password-resets/{request_id}/reject", status_code=200)
-async def reject_password_reset(request_id: UUID, session: AsyncSession = Depends(get_session)):
-    req = await session.get(PasswordResetRequest, request_id)
-    if not req:
-        raise HTTPException(status_code=404, detail="Request not found")
-    if req.status != PasswordResetStatus.PENDING:
-        raise HTTPException(status_code=400, detail="Request is already processed")
-        
-    req.status = PasswordResetStatus.REJECTED
-    await session.commit()
-    return {"message": "Request rejected."}

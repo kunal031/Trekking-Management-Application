@@ -166,7 +166,7 @@ function ForgotPasswordModal({ onClose }) {
         method: "POST",
         body: JSON.stringify({ email })
       });
-      setStatus(res.message || "Request sent. An admin will review it.");
+      setStatus(res.message || "If an account exists, a reset link will be sent to your email.");
     } catch (err) {
       setStatus(err.message);
     } finally {
@@ -178,7 +178,7 @@ function ForgotPasswordModal({ onClose }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/40 p-4 backdrop-blur-sm animate-fade-in">
       <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl animate-scale-in">
         <h2 className="text-xl font-bold mb-2">Reset Password</h2>
-        <p className="text-sm text-stone-500 mb-4">Enter your email and an admin will process your request.</p>
+        <p className="text-sm text-stone-500 mb-4">Enter your email to receive a password reset link.</p>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <input className="w-full rounded-lg border border-stone-200 px-3 py-2 outline-none focus:border-emerald-500" type="email" placeholder="Email address" required value={email} onChange={e => setEmail(e.target.value)} disabled={loading} />

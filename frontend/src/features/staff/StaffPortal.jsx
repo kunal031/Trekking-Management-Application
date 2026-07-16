@@ -3,11 +3,13 @@ import { useSelector } from "react-redux";
 
 import { apiRequest } from "../../lib/api";
 import ProfileTab from "../../components/ProfileTab";
+import BookingModal from "../treks/BookingModal";
 
 export default function StaffPortal() {
   const { token } = useSelector((state) => state.auth);
   const [activeTab, setActiveTab] = useState("treks");
   const [treks, setTreks] = useState([]);
+  const [bookingTrek, setBookingTrek] = useState(null);
 
   async function updateSlots(trek, availableSlots) {
     const updated = await apiRequest(`/treks/${trek.id}/slot-status`, {
@@ -81,26 +83,34 @@ export default function StaffPortal() {
                   </div>
                   
                   <div className="flex items-center gap-4 bg-stone-100/50 p-4 rounded-xl">
-                    <label className="text-sm font-medium text-stone-700">
-                      Available Slots:
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        className="w-24 rounded-lg border-stone-200 bg-white px-3 py-2 text-lg font-semibold text-center text-emerald-700 focus:border-emerald-500 focus:ring-emerald-500 shadow-sm"
-                        type="number"
-                        min="0"
-                        max={trek.total_slots}
-                        defaultValue={trek.available_slots}
-                        onBlur={(event) => updateSlots(trek, event.target.value)}
-                      />
-                      <span className="text-stone-400 font-medium">/ {trek.total_slots}</span>
+                    <div className="flex flex-col items-center">
+                      <span className="text-sm font-medium text-stone-500 mb-1">Available Slots</span>
+                      <span className="text-xl font-bold text-emerald-700">{trek.available_slots} <span className="text-stone-400 text-sm">/ {trek.total_slots}</span></span>
                     </div>
+                    <button
+                      onClick={() => setBookingTrek(trek)}
+                      className="ml-2 px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-500 transition-colors shadow-sm"
+                    >
+                      Book Slots
+                    </button>
                   </div>
                 </div>
               </article>
             ))
           )}
         </div>
+      )}
+
+      {activeTab === "profile" && <ProfileTab token={token} />}
+      {bookingTrek && (
+        <BookingModal 
+          trek={bookingTrek} 
+          onClose={() => setBookingTrek(null)}
+          onSuccess={() => {
+            setBookingTrek(null);
+            apiRequest("/treks/assigned/me", { token }).then(setTreks);
+          }}
+        />
       )}
 
       {activeTab === "profile" && <ProfileTab token={token} />}

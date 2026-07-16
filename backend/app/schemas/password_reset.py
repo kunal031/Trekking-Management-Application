@@ -16,3 +16,7 @@ class PasswordResetRequestRead(BaseModel):
     user: UserRead | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+class ResetPasswordRequest(BaseModel):
+    token: uuid.UUID
+    new_password: str
