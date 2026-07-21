@@ -3,6 +3,7 @@ import { useSelector } from "react-redux";
 
 import BookingModal from "./BookingModal";
 import TrekSearch from "./TrekSearch";
+import UserBookings from "./UserBookings";
 import ProfileTab from "../../components/ProfileTab";
 
 export default function UserDashboard() {
@@ -16,16 +17,22 @@ export default function UserDashboard() {
       {/* Dashboard Header & Tabs */}
       <div className="mb-8 flex flex-col sm:flex-row justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-stone-100">
         <h1 className="text-2xl font-bold text-stone-800 mb-4 sm:mb-0">User Dashboard</h1>
-        <div className="flex bg-stone-100 p-1 rounded-xl shadow-inner">
+        <div className="flex bg-stone-100 p-1 rounded-xl shadow-inner overflow-x-auto w-full sm:w-auto">
           <button
             onClick={() => setActiveTab("treks")}
-            className={`px-6 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === "treks" ? "bg-white text-emerald-700 shadow-sm" : "text-stone-600 hover:text-stone-900"}`}
+            className={`px-6 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${activeTab === "treks" ? "bg-white text-emerald-700 shadow-sm" : "text-stone-600 hover:text-stone-900"}`}
           >
             Find Treks
           </button>
           <button
+            onClick={() => setActiveTab("bookings")}
+            className={`px-6 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${activeTab === "bookings" ? "bg-white text-emerald-700 shadow-sm" : "text-stone-600 hover:text-stone-900"}`}
+          >
+            My Bookings
+          </button>
+          <button
             onClick={() => setActiveTab("profile")}
-            className={`px-6 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === "profile" ? "bg-white text-emerald-700 shadow-sm" : "text-stone-600 hover:text-stone-900"}`}
+            className={`px-6 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${activeTab === "profile" ? "bg-white text-emerald-700 shadow-sm" : "text-stone-600 hover:text-stone-900"}`}
           >
             My Profile
           </button>
@@ -70,6 +77,7 @@ export default function UserDashboard() {
       )}
 
       {activeTab === "profile" && <ProfileTab token={token} />}
+      {activeTab === "bookings" && <UserBookings token={token} />}
     </section>
   );
 }

@@ -108,10 +108,9 @@ async def cancel_booking(
     ).one()
 
 
-@router.post("/export", status_code=status.HTTP_202_ACCEPTED)
+@router.post("/export", status_code=status.HTTP_200_OK)
 async def export_my_booking_history(
-    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
 ) -> dict[str, str]:
-    background_tasks.add_task(export_booking_history, str(current_user.id))
-    return {"status": "accepted"}
+    await export_booking_history(str(current_user.id))
+    return {"status": "completed"}

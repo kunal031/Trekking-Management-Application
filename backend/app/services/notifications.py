@@ -1,12 +1,16 @@
 import csv
 from datetime import date, datetime, timedelta, timezone
+from email.message import EmailMessage
 from pathlib import Path
 from uuid import UUID
+
+import aiosmtplib
 
 from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.config import settings
 from app.db.session import AsyncSessionLocal
 from app.models.booking import Booking
 from app.models.enums import BookingStatus, TrekStatus, UserRole
@@ -15,7 +19,27 @@ from app.models.user import User
 
 
 async def send_message(destination: str, subject: str, body: str) -> None:
-    print(f"[notification] to={destination} subject={subject} body={body}")
+    if settings.smtp_host:
+        message = EmailMessage()
+        message["From"] = settings.smtp_from_email or "noreply@tma-v2.com"
+        message["To"] = destination
+        message["Subject"] = subject
+        message.set_content(body)
+        
+        try:
+            await aiosmtplib.send(
+                message,
+                hostname=settings.smtp_host,
+                port=settings.smtp_port or 587,
+                username=settings.smtp_user,
+                password=settings.smtp_password,
+                start_tls=True,
+            )
+            print(f"[email] Successfully sent email to {destination}")
+        except Exception as e:
+            print(f"[email error] Failed to send email to {destination}: {e}")
+    else:
+        print(f"[notification] to={destination} subject={subject} body={body}")
 
 
 async def send_trek_reminders(session: AsyncSession) -> None:
@@ -54,6 +78,11 @@ async def export_booking_history(user_id: str) -> None:
     output_path = export_dir / f"bookings_{user_id}_{timestamp}.csv"
 
     async with AsyncSessionLocal() as session:
+        user = await session.get(User, UUID(user_id))
+        if not user:
+            return
+        user_email = user.email
+
         bookings = (
             await session.scalars(
                 select(Booking)
@@ -79,3 +108,4 @@ async def export_booking_history(user_id: str) -> None:
                 ]
             )
     print(f"[export] Wrote {output_path}")
+    await send_message(user_email, "Your Booking History Export", f"Your booking history export has completed successfully. The file has been saved on our secure servers as {output_path.name}.")

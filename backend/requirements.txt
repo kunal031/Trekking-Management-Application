@@ -10,3 +10,4 @@ python-multipart==0.0.19
 redis==5.2.1
 APScheduler==3.11.0
 email-validator==2.2.0
+aiosmtplib==3.0.1
