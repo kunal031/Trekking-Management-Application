@@ -18,13 +18,22 @@ from app.models.trek import Trek
 from app.models.user import User
 
 
-async def send_message(destination: str, subject: str, body: str) -> None:
+async def send_message(destination: str, subject: str, body: str, attachment_path: Path | None = None, attachment_name: str | None = None) -> None:
     if settings.smtp_host:
         message = EmailMessage()
         message["From"] = settings.smtp_from_email or "noreply@tma-v2.com"
         message["To"] = destination
         message["Subject"] = subject
         message.set_content(body)
+        
+        if attachment_path and attachment_path.exists():
+            with attachment_path.open('rb') as f:
+                message.add_attachment(
+                    f.read(),
+                    maintype='text',
+                    subtype='csv',
+                    filename=attachment_name or attachment_path.name
+                )
         
         try:
             await aiosmtplib.send(
@@ -74,8 +83,6 @@ async def send_monthly_activity_report(session: AsyncSession) -> None:
 async def export_booking_history(user_id: str) -> str:
     export_dir = Path("exports")
     export_dir.mkdir(exist_ok=True)
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
-    output_path = export_dir / f"bookings_{user_id}_{timestamp}.csv"
 
     async with AsyncSessionLocal() as session:
         user = await session.get(User, UUID(user_id))
@@ -83,6 +90,7 @@ async def export_booking_history(user_id: str) -> str:
             print(f"Error: No user found with ID {user_id}")
             return
         user_email = user.email
+        user_name = user.first_name or "user"
 
         bookings = (
             await session.scalars(
@@ -92,6 +100,15 @@ async def export_booking_history(user_id: str) -> str:
                 .order_by(Booking.booking_date.desc())
             )
         ).all()
+        
+    if bookings:
+        from_date = bookings[-1].booking_date.strftime("%Y-%m-%d")
+        to_date = bookings[0].booking_date.strftime("%Y-%m-%d")
+    else:
+        from_date = to_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        
+    filename = f"{user_name}_booking_history_{from_date}_to_{to_date}.csv"
+    output_path = export_dir / filename
 
     with output_path.open("w", newline="", encoding="utf-8") as csv_file:
         writer = csv.writer(csv_file)
@@ -114,7 +131,9 @@ async def export_booking_history(user_id: str) -> str:
         await send_message(
             user_email, 
             "Your Booking History Export", 
-            f"Your booking history export has completed successfully. The file has been saved on our secure servers as {output_path.name}."
+            "Please find your requested booking history CSV attached.",
+            attachment_path=output_path,
+            attachment_name=filename
         )
     except Exception as e:
         print(f"[export] Warning: Failed to send message to {user_email}. Error: {e}")
