@@ -71,7 +71,7 @@ async def send_monthly_activity_report(session: AsyncSession) -> None:
         await send_message(admin.email, "TMA monthly activity report", body)
 
 
-async def export_booking_history(user_id: str) -> None:
+async def export_booking_history(user_id: str) -> str:
     export_dir = Path("exports")
     export_dir.mkdir(exist_ok=True)
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
@@ -80,6 +80,7 @@ async def export_booking_history(user_id: str) -> None:
     async with AsyncSessionLocal() as session:
         user = await session.get(User, UUID(user_id))
         if not user:
+            print(f"Error: No user found with ID {user_id}")
             return
         user_email = user.email
 
@@ -102,10 +103,22 @@ async def export_booking_history(user_id: str) -> None:
                     booking.trek.name if booking.trek else "",
                     booking.trek.location if booking.trek else "",
                     booking.booking_date,
-                    booking.status.value,
-                    booking.payment_status.value,
+                    booking.status.value if booking.status else "",
+                    booking.payment_status.value if booking.payment_status else "",
                     booking.slots_booked,
                 ]
             )
     print(f"[export] Wrote {output_path}")
-    await send_message(user_email, "Your Booking History Export", f"Your booking history export has completed successfully. The file has been saved on our secure servers as {output_path.name}.")
+
+    try:
+        await send_message(
+            user_email, 
+            "Your Booking History Export", 
+            f"Your booking history export has completed successfully. The file has been saved on our secure servers as {output_path.name}."
+        )
+    except Exception as e:
+        print(f"[export] Warning: Failed to send message to {user_email}. Error: {e}")
+    
+    with output_path.open("r", encoding="utf-8") as f:
+        csv_content = f.read()
+    return csv_content

@@ -111,6 +111,6 @@ async def cancel_booking(
 @router.post("/export", status_code=status.HTTP_200_OK)
 async def export_my_booking_history(
     current_user: User = Depends(get_current_user),
-) -> dict[str, str]:
-    await export_booking_history(str(current_user.id))
-    return {"status": "completed"}
+):
+    csv_data = await export_booking_history(str(current_user.id))
+    return {"status": "completed", "csv_data": csv_data}

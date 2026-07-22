@@ -1,0 +1,2 @@
+booking_id,trek_name,location,booking_date,status,payment_status,slots_booked
+675b69d8-d699-44ff-be89-8c9d55f2c7eb,Everest Base Camp,Himalaya,2026-07-21 09:30:52.416808+00:00,BOOKED,COMPLETED,1

@@ -28,10 +28,28 @@ export default function UserBookings({ token }) {
   }, [token]);
 
   const handleExport = async () => {
-    setExportStatus("Sending email...");
+    setExportStatus("Generating CSV...");
+    console.log("flow goes to try block");
     try {
-      await apiRequest("/bookings/export", { method: "POST", token });
-      setExportStatus("Your booking history export has completed successfully");
+      const response = await apiRequest("/bookings/export", { method: "POST", token });
+      console.log('inside try and outside if')
+      console.log(response)
+      if (response && response.csv_data) {
+        console.log("both response and csv data is yess")
+        const blob = new Blob([response.csv_data], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        console.log(url);
+        link.href = url;
+        console.log(link.href)
+        link.setAttribute("download", `booking_history_${new Date().toISOString().slice(0, 10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
+      
+      setExportStatus("Your booking history export has downloaded successfully");
       setTimeout(() => setExportStatus(""), 5000);
     } catch (err) {
       setExportStatus(`Export failed: ${err.message}`);
